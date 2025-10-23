@@ -1,30 +1,14 @@
 name: Build APK
-
 on: [push]
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v4
-    - uses: subosito/flutter-action@v2
-    
-    - name: Create and build Flutter app
-      run: |
-        flutter create -t app myapp
-        cd myapp
-        echo "
-import 'package:flutter/material.dart';
-
-void main() => runApp(MaterialApp(
-  home: Scaffold(
-    body: Center(child: Text('It works!')),
-  ),
-));" > lib/main.dart
-        flutter build apk --release
-        
-    - uses: actions/upload-artifact@v4
-      with:
-        name: apk
-        path: myapp/build/app/outputs/flutter-apk/app-release.apk
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+      - run: flutter create myapp
+      - run: cd myapp && flutter build apk --debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app
+          path: myapp/build/app/outputs/flutter-apk/app-debug.apk
