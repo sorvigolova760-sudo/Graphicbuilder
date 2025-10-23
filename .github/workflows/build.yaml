@@ -1,100 +1,35 @@
-name: Build Flutter APK
+name: Build APK
 
-on:
-  push:
-    branches: [ main ]
+on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
+    - uses: actions/checkout@v4
+    
+    - uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.16.0'
-
-    - name: Create proper Flutter project
-      run: |
-        flutter create my_app
-        cd my_app
         
+    - run: flutter create myapp --platforms android
+    
+    - run: |
+        cd myapp
         echo "
 import 'package:flutter/material.dart';
-import 'dart:math';
 
-void main() => runApp(const MyApp());
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Генератор чисел',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: const HomeScreen(),
-    );
-  }
-}
-
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int _number = 0;
-  final Random _random = Random();
-
-  void _generateNumber() {
-    setState(() {
-      _number = _random.nextInt(100) + 1;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Случайное число')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Твое число:', style: TextStyle(fontSize: 24)),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Text('$_number', style: const TextStyle(fontSize: 48)),
-            ),
-            const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: _generateNumber,
-              child: const Text('Новое число', style: TextStyle(fontSize: 20)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}" > lib/main.dart
-
-    - name: Build APK
-      run: |
-        cd my_app
-        flutter build apk --release
-
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
+void main() => runApp(MaterialApp(
+  home: Scaffold(
+    appBar: AppBar(title: Text('Test App')),
+    body: Center(child: Text('Hello World')),
+  ),
+));" > lib/main.dart
+        
+    - run: cd myapp && flutter build apk --release
+    
+    - uses: actions/upload-artifact@v4
       with:
-        name: app-release
-        path: my_app/build/app/outputs/flutter-apk/app-release.apk
+        name: app
+        path: myapp/build/app/outputs/flutter-apk/app-release.apk
