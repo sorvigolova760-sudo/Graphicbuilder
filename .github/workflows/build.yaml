@@ -1,15 +1,76 @@
 name: Build APK
-on: [push, pull_request]
+
+on: [push]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-      - run: flutter pub get
-      - run: flutter build apk --release
-      - uses: actions/upload-artifact@v4
-        with:
-          name: apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+
+    - name: Create fresh Flutter project
+      run: |
+        # Создаем чистый проект в отдельной папке
+        flutter create -t app --org com.example flutter_app
+        
+    - name: Copy our Dart code
+      run: |
+        # Если у нас есть наш main.dart - копируем его
+        if [ -f "lib/main.dart" ]; then
+          cp lib/main.dart flutter_app/lib/
+        else
+          # Иначе создаем простой пример
+          echo "
+import 'package:flutter/material.dart';
+import 'dart:math';
+
+void main() => runApp(const MyApp());
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(title: const Text('Random Number')),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Your number:'),
+              Builder(
+                builder: (context) {
+                  final number = Random().nextInt(100);
+                  return Text(
+                    '\$number',
+                    style: const TextStyle(fontSize: 40),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}" > flutter_app/lib/main.dart
+        fi
+
+    - name: Build APK
+      run: |
+        cd flutter_app
+        flutter build apk --release
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-release
+        path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
