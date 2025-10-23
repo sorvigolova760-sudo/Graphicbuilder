@@ -7,9 +7,188 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-      - run: flutter pub get
-      - run: flutter build apk --release
-      - uses: actions/upload-artifact@v4
+      
+      - name: Create proper Flutter project
+        run: |
+          # Создаем чистый проект в отдельной папке
+          flutter create -t app graph_project
+          
+      - name: Copy our code to proper project
+        run: |
+          # Копируем наш pubspec.yaml
+          cp pubspec.yaml graph_project/
+          
+          # Создаем наш main.dart в правильном проекте
+          mkdir -p graph_project/lib
+          echo "
+import 'package:flutter/material.dart';
+import 'dart:math';
+
+void main() {
+  runApp(const GraphApp());
+}
+
+class GraphApp extends StatelessWidget {
+  const GraphApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'График функций',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
+      ),
+      home: const GraphScreen(),
+    );
+  }
+}
+
+class GraphScreen extends StatefulWidget {
+  const GraphScreen({super.key});
+
+  @override
+  State<GraphScreen> createState() => _GraphScreenState();
+}
+
+class _GraphScreenState extends State<GraphScreen> {
+  final TextEditingController _functionController = TextEditingController(text: 'x*x');
+  final List<GraphFunction> _functions = [];
+
+  final List<Color> _colorPalette = [
+    Colors.blue, Colors.purple, Colors.pink, Colors.red,
+    Colors.cyan, Colors.teal, Colors.green, Colors.lightGreen,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _addFunction('x*x', -5, 5, -5, 5);
+  }
+
+  void _addFunction(String expression, double xMin, double xMax, double yMin, double yMax) {
+    try {
+      final func = _createFunction(expression);
+      final color = _colorPalette[_functions.length % _colorPalette.length];
+      
+      setState(() {
+        _functions.add(GraphFunction(
+          function: func,
+          expression: expression,
+          color: color,
+          isVisible: true,
+        ));
+      });
+    } catch (e) {
+      _showError('Ошибка в функции: \$e');
+    }
+  }
+
+  double Function(double) _createFunction(String expression) {
+    return (double x) {
+      try {
+        if (expression == 'x*x') return x * x;
+        if (expression == 'sin(x)') return sin(x);
+        if (expression == 'cos(x)') return cos(x);
+        if (expression == '2*x + 1') return 2 * x + 1;
+        return x * x;
+      } catch (e) {
+        return double.nan;
+      }
+    };
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('График функций')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _functionController,
+                    decoration: const InputDecoration(labelText: 'Функция'),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () => _addFunction(_functionController.text, -5, 5, -5, 5),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Добавленные функции:',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _functions.length,
+              itemBuilder: (context, index) {
+                final func = _functions[index];
+                return ListTile(
+                  leading: Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: func.color,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  title: Text(func.expression),
+                  trailing: IconButton(
+                    icon: Icon(func.isVisible ? Icons.visibility : Icons.visibility_off),
+                    onPressed: () {
+                      setState(() {
+                        func.isVisible = !func.isVisible;
+                      });
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class GraphFunction {
+  final double Function(double) function;
+  final String expression;
+  final Color color;
+  bool isVisible;
+
+  GraphFunction({
+    required this.function,
+    required this.expression,
+    required this.color,
+    required this.isVisible,
+  });
+}
+" > graph_project/lib/main.dart
+
+      - name: Build APK from proper project
+        run: |
+          cd graph_project
+          flutter pub get
+          flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
         with:
           name: graph-app
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: graph_project/build/app/outputs/flutter-apk/app-release.apk
