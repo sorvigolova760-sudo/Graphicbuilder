@@ -1,5 +1,5 @@
-name: my_app
-description: "A simple Flutter app"
+name: graph_app
+description: "Flutter Graph Plotter App"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.2
+  vector_math: ^2.1.4
 
 dev_dependencies:
   flutter_test:
